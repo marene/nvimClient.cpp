@@ -7,18 +7,10 @@
 
 # include "msgpack.hpp"
 
-# include "MsgPacker.hpp"
-# include "TcpConnector.hpp"
+# include "impl/MsgPacker.hpp"
+# include "impl/TcpConnector.hpp"
 
 namespace nvimRpc {
-	using Packer = msgpack::packer<msgpack::sbuffer>;
-	using Object = msgpack::object;
-	enum {
-		REQUEST  = 0,
-		RESPONSE = 1,
-		NOTIFY   = 2
-	};
-
 	struct ClientConfig {
 		std::string host;
 		int port;
@@ -53,19 +45,14 @@ namespace nvimRpc {
 				std::vector<char> rawApiRes = _connector->read();
 
 				packer::PackedRequestResponse<std::string> packedResponse(rawApiRes);
-				std::cout << "Deserialized response: " << packedResponse.deserialized() << std::endl;
-
-				return "FooBar";
+				return packedResponse.value();
 			};
 
-			std::string setCurrentLine(const std::string& line) {
+			void setCurrentLine(const std::string& line) {
 				_call("nvim_set_current_line", line);
 				std::vector<char> rawApiRes = _connector->read();
 
-				packer::PackedRequestResponse<std::string> packedResponse(rawApiRes);
-				std::cout << "Deserialized response: " << packedResponse.deserialized() << std::endl;
-
-				return "FooBar";
+				packer::PackedRequestResponse<packer::Void> packedResponse(rawApiRes);
 			};
 	};
 

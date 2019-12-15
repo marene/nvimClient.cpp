@@ -1,0 +1,2 @@
+boost 1.72.0 (compiled with chrono context system timer)
+msgpack-c compile with option -DMSGPACK_BOOST=ON -DMSGPACK_CXX17=ON

@@ -2,8 +2,7 @@
 #include <unistd.h>
 #include <iostream>
 
-#include "TcpConnector.hpp"
-#include "Client.hpp"
+#include "nvimClient.hpp"
 
 int main(int argc, char **argv) {
 	nvimRpc::Client *client = new nvimRpc::Client(
@@ -12,6 +11,6 @@ int main(int argc, char **argv) {
 
 	client->connect();
 	client->setCurrentLine("FROM NVIM CLIENT");
-	client->getCurrentLine();
+	std::cout << " Current line: " << client->getCurrentLine() << std::endl;;
 	return 0;
 }
