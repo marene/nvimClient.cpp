@@ -3,9 +3,8 @@
 # define BOOST_VARIANT_USE_RELAXED_GET_BY_DEFAULT
 # define MSGPACK_USE_BOOST
 
-
 # include <iostream>
-# include <boost/variant/get.hpp>
+# include <experimental/optional>
 
 # include "msgpack.hpp"
 
@@ -14,6 +13,7 @@ namespace nvimRpc {
 		using Packer = msgpack::packer<msgpack::sbuffer>;
 		using Object = msgpack::object;
 		using Void = msgpack::type::nil_t;
+		using Error = msgpack::type::tuple<uint64_t, std::string>;
 		enum {
 			REQUEST  = 0,
 			RESPONSE = 1,
@@ -62,21 +62,31 @@ namespace nvimRpc {
 		template <typename T>
 			class PackedRequestResponse {
 				private:
-					msgpack::object_handle *_objectHandle;
 					std::vector<char> _rawResponse;
+					// TODO upgrade to std::optional
+					boost::optional<packer::Error> _error;
+					boost::optional<T> _value;
 
 				public:
 					PackedRequestResponse(const std::vector<char>& rawResponse) {
 						_rawResponse = std::vector<char>(rawResponse);
-					};
 
-					T value() {
 						msgpack::object_handle objectHandle = msgpack::unpack(_rawResponse.data(), _rawResponse.size());
 						msgpack::type::tuple<uint64_t, uint64_t, Object, Object> unpackedResponse;
 						objectHandle.get().convert(unpackedResponse);
 						Object objectValue = unpackedResponse.get<3>();
+						Object objectError = unpackedResponse.get<2>();
 
-						return objectValue.as<T>();
+						objectValue.convert_if_not_nil(_value);
+						objectError.convert_if_not_nil(_error);
+					};
+
+					const boost::optional<T>& value() const {
+						return _value;
+					}
+
+					const boost::optional<packer::Error>& error() const {
+						return _error;
 					}
 			};
 

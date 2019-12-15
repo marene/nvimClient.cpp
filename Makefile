@@ -20,7 +20,7 @@ $(NAME): $(addprefix $(OBJ_DIR), $(OBJS))
 	clang++ -std=c++17 -g $^ $(INCLUDES) $(LIBRARIES) -o $@
 
 $(OBJ_DIR)%.o: $(SRCS_DIR)%.cpp
-	clang++ -std=c++14 $(INCLUDES) -c -o $@ $<
+	clang++ -std=c++17 $(INCLUDES) -c -o $@ $<
 
 clean:
 	rm -f $(NAME)
