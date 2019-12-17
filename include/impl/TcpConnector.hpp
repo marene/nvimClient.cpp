@@ -42,7 +42,7 @@ namespace Tcp {
 			};
 
 			std::vector<char> read() {
-				std::array<char, 2048> buf;
+				std::array<char, 4096> buf;
 
 				size_t sizeRead = _socket->read_some(boost::asio::buffer(buf));
 

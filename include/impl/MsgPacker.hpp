@@ -4,6 +4,7 @@
 # define MSGPACK_USE_BOOST
 
 # include <iostream>
+# include <map>
 # include <experimental/optional>
 
 # include "msgpack.hpp"
@@ -14,6 +15,11 @@ namespace nvimRpc {
 		using Object = msgpack::object;
 		using Void = msgpack::type::nil_t;
 		using Error = msgpack::type::tuple<uint64_t, std::string>;
+		using HlGroupMap = struct {
+			bool bold;
+			uint64_t foreground;
+			MSGPACK_DEFINE_MAP(bold, foreground);
+		};
 		enum {
 			REQUEST  = 0,
 			RESPONSE = 1,
@@ -23,6 +29,12 @@ namespace nvimRpc {
 		template<class T>
 			Packer& pack(Packer& pk, const T& t) {
 				return pk << t;
+			}
+
+		template<typename...T>
+			Packer& pack(Packer& pk, const T&...args) {
+				(pk << ... << args);
+				return pk;
 			}
 
 		Packer& pack(Packer& pack) {
@@ -47,6 +59,7 @@ namespace nvimRpc {
 
 						pack(*_packer, args...);
 					};
+
 					~PackedRequest() {
 						free(_packer);
 					};
@@ -54,6 +67,7 @@ namespace nvimRpc {
 					char* data() {
 						return _buffer.data();
 					};
+
 					size_t size() {
 						return _buffer.size();
 					};
@@ -68,6 +82,7 @@ namespace nvimRpc {
 					boost::optional<T> _value;
 
 				public:
+					PackedRequestResponse() {};
 					PackedRequestResponse(const std::vector<char>& rawResponse) {
 						_rawResponse = std::vector<char>(rawResponse);
 

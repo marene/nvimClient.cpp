@@ -11,11 +11,9 @@ int main(int argc, char **argv) {
 
 	client->connect();
 	try {
-		client->setCurrentLine("FROM NVIM CLIENT");
-		std::cout << " Current line: " << client->getCurrentLine() << std::endl;;
-		client->delCurrentLine();
+		auto buffers = client->listBufs();
 	} catch (nvimRpc::ClientError& e) {
-		std::cout << "Error: " << e.what() << std::endl;
+		std::cout << "Client error caught: " << e.what() << std::endl;
 	}
 	return 0;
 }
