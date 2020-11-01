@@ -1,11 +1,10 @@
-BOOST_ROOT = /home/matthieu/lib//boost_1_70_0
 SRCS_DIR = ./src/
 SRCS = main.cpp
 INCLUDES = -I ./include/ -I./neovim/src -I$(BOOST_ROOT) -I./msgpack-c/include
 IMPL_HEADERS = ./include/impl/Client.hpp \
 							 ./include/impl/MsgPacker.hpp \
 							 ./include/impl/TcpConnector.hpp
-LIBRARIES = -L/home/matthieu/lib/boost_1_70_0/stage/lib -lboost_system -lpthread -lcurses
+LIBRARIES = -L$(BOOST_ROOT)/stage/lib -lboost_system -lpthread -lcurses
 OBJ_DIR = ./obj/
 OBJS = $(SRCS:.cpp=.o)
 NAME = rpcVim

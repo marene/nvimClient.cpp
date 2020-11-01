@@ -4,6 +4,7 @@
 # include <boost/asio.hpp>
 # include <boost/array.hpp>
 # include <vector>
+# include <string>
 
 namespace Tcp {
 	class Connector {
