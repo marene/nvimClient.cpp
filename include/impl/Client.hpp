@@ -79,17 +79,17 @@ namespace nvimRpc {
 				_handleResponse(packedResponse);
 			}
 
-			packer::HlGroupMap getHlByName(const std::string& hlName, const bool& rgb) {
-				packer::HlGroupMap ret;
-				auto packedResponse = _call<packer::HlGroupMap>("nvim_get_hl_by_name", hlName, rgb);
+			types::Dictionary getHlByName(const std::string& hlName, const bool& rgb) {
+				types::Dictionary ret;
+				auto packedResponse = _call<types::Dictionary>("nvim_get_hl_by_name", hlName, rgb);
 
 				_handleResponse(packedResponse, ret);
 				return ret;
 			}
 
-			packer::HlGroupMap getHlById(const uint64_t& hlId, const bool& rgb) {
-				packer::HlGroupMap ret;
-				auto packedResponse = _call<packer::HlGroupMap>("nvim_get_hl_by_id", hlId, rgb);
+			types::Dictionary getHlById(const uint64_t& hlId, const bool& rgb) {
+				types::Dictionary ret;
+				auto packedResponse = _call<types::Dictionary>("nvim_get_hl_by_id", hlId, rgb);
 
 				_handleResponse(packedResponse, ret);
 				return ret;

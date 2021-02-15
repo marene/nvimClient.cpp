@@ -16,6 +16,11 @@ int main(int argc, char **argv) {
 
 	try {
 		auto buffers = client->listBufs();
+		client->command(":highlight FooBar cterm=bold,underline, ctermfg=1, ctermbg=2");
+		auto hlGroup = client->getHlByName("FooBar", false);
+		for (auto it: hlGroup) {
+			std::cout << it.first << std::endl;
+		}
 	} catch (nvimRpc::ClientError& e) {
 		std::cout << "Client error caught: " << e.what() << std::endl;
 	}

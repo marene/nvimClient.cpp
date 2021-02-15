@@ -14,11 +14,6 @@ namespace nvimRpc {
 		using Object = msgpack::object;
 		using Void = msgpack::type::nil_t;
 		using Error = msgpack::type::tuple<uint64_t, std::string>;
-		using HlGroupMap = struct {
-			bool bold;
-			uint64_t foreground;
-			MSGPACK_DEFINE_MAP(bold, foreground);
-		};
 		enum {
 			REQUEST  = 0,
 			RESPONSE = 1,

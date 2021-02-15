@@ -1,7 +1,18 @@
-#include <iostream>
-# include <fstream>
+#ifndef GEN_HPP
+# define GEN_HPP
+
+# include <iostream>
+# include <regex>
 
 # include "msgpack.hpp"
+
+# define STRINGIFY(...) #__VA_ARGS__
+# define DEFAULT_REQUIRES R"includes(
+# include "msgpack.hpp"
+# include "impl/MsgPacker.hpp"
+# include "impl/TcpConnector.hpp"
+# include "impl/types.hpp"
+		)includes"
 
 namespace nvimApiMetadata {
 	using ApiMetaVersion = struct {
@@ -54,27 +65,45 @@ namespace nvimApiMetadata {
 		MSGPACK_DEFINE_MAP(version, functions, ui_events, ui_options, error_types, types);
 	};
 
-
-	ApiMetaInfo getApiMetaInfo(std::ifstream& metaInfoInput) {
-		ApiMetaInfo metaInfo;
-		std::vector<char> buffer(std::istreambuf_iterator<char>(metaInfoInput), {});
-
-		auto objectHandle = msgpack::unpack(buffer.data(), buffer.size());
-		auto unpacked = objectHandle.get();
-
-		unpacked.convert(metaInfo);
-
-		return metaInfo;
-	}
-
-	void generate(const std::string& apiInfoPath) {
-		std::ifstream metaInfoInput(apiInfoPath, std::ios::binary);
-		auto apiMetaInfo = getApiMetaInfo(metaInfoInput);	
-	}
+	ApiMetaInfo getApiMetaInfo(std::ifstream& metaInfoInput);
+	ApiMetaInfo generate(const std::string& apiInfoPath);
 }
 
-int main() {
-	nvimApiMetadata::generate("/tmp/apiinfo");
+namespace generator {
+	struct BaseTypeMatch {
+		std::string nvimTypeName;
+		std::string cppType;
+	};
 
-	return 0;
+	struct ApiFunctionParam {
+		std::string type;
+		std::string name;
+
+		ApiFunctionParam(nvimApiMetadata::ApiMetaParams& param) {
+			this->type = param[0];
+			this->name = param[1];
+		}
+	};
+
+	class ContainerTypeMatch {
+		public:
+			std::string nvimTypeName;
+
+			ContainerTypeMatch(const std::string& type): nvimTypeName(type) {};
+			~ContainerTypeMatch() {};
+			virtual std::string getCppType(const std::string& matchResults) const = 0;
+	};
+
+	class ArrayMatch: public ContainerTypeMatch {
+		public:
+			ArrayMatch(const std::string& type): ContainerTypeMatch(type) {};
+
+			std::string getCppType(const std::string& matchResults) const {
+				return "std::vector<" + matchResults + ">";
+			};
+	};
+
+	std::string generateNvimClient(const nvimApiMetadata::ApiMetaInfo& apiInfo);
 }
+
+#endif /* !GEN_HPP */
