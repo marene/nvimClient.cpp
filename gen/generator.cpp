@@ -66,15 +66,11 @@ namespace generator {
 		return fnPrototype;
 	}
 
-	std::string getVoidApiFunctionImplementation(std::vector<ApiFunctionParam> fnParams) {
-		std::string impl = "\tauto packedRespone = _call<packer::Void>(";
+	std::string getVoidApiFunctionImplementation(std::string fnName, std::vector<ApiFunctionParam> fnParams) {
+		std::string impl = "\tauto packedResponse = _call<packer::Void>(\"" + fnName + "\"";
 
 		for (auto param = fnParams.begin(); param != fnParams.end(); param++) {
-			if (param != fnParams.begin()) {
-				impl += ", ";
-			}
-
-			impl += param->name;
+			impl += ", " + param->name;
 		}
 
 		impl += ");\n\n\t_handleResponse(packedResponse);\n}";
@@ -82,15 +78,14 @@ namespace generator {
 		return impl;
 	}
 
-	std::string getTypedApiFunctionImplementation(std::string fnType, std::vector<ApiFunctionParam> fnParams) {
-		std::string impl = "\t" + fnType + "ret;\n\tauto packedRespone = _call<" + fnType + ">(";
+	std::string getTypedApiFunctionImplementation(std::string fnType, std::string fnName, std::vector<ApiFunctionParam> fnParams) {
+		std::string impl =
+			"\t" + fnType + " ret;\n"
+			+ "\tauto packedResponse = _call<" + fnType + ">"
+			+ "(\"" + fnName + "\"";
 
 		for (auto param = fnParams.begin(); param != fnParams.end(); param++) {
-			if (param != fnParams.begin()) {
-				impl += ", ";
-			}
-
-			impl += param->name;
+			impl += ", " + param->name;
 		}
 
 		impl += ");\n\n\t_handleResponse(packedResponse, ret);\n\treturn ret;\n}";
@@ -98,12 +93,12 @@ namespace generator {
 		return impl;
 	}
 
-	std::string getApiFunctionImplementation(std::string fnType, std::vector<ApiFunctionParam> fnParams) {
+	std::string getApiFunctionImplementation(std::string fnType, std::string fnName, std::vector<ApiFunctionParam> fnParams) {
 		if (fnType == "void") {
-			return getVoidApiFunctionImplementation(fnParams);
+			return getVoidApiFunctionImplementation(fnName, fnParams);
 		}
 
-		return getTypedApiFunctionImplementation(fnType, fnParams);
+		return getTypedApiFunctionImplementation(fnType, fnName, fnParams);
 	}
 
 	void defineApiFunction(std::stringstream& client, nvimApiMetadata::ApiMetaFunction& apiFunction) {
@@ -112,18 +107,29 @@ namespace generator {
 
 			client
 				<< getApiFunctionPrototype(fnType, apiFunction.name, fnParams)
-				<< getApiFunctionImplementation(fnType, fnParams) << std::endl << std::endl;
+				<< getApiFunctionImplementation(fnType, apiFunction.name, fnParams)
+				<< std::endl << std::endl;
 	}
 
 	std::string generateNvimClient(const nvimApiMetadata::ApiMetaInfo& apiInfo) {
 		std::stringstream client;
 
-		client << DEFAULT_REQUIRES << std::endl << std::endl;
+		client
+			<< DEFINE_NVIMRPC_HEADERS
+			<< DEFAULT_REQUIRES
+			<< NVIMRPC_SETUP
+			<< CLIENT_SETUP
+			<< std::endl << std::endl;
 
 		addApiTypes(apiInfo.types);
 		for (auto fn: apiInfo.functions) {
 			defineApiFunction(client, fn);
 		}
+
+		client
+			<< CLOSE_CLIENT
+			<< CLOSE_NVIMRPC
+			<< CLOSE_NVIMRPC_HEADERS;
 
 		std::cout << client.str();
 

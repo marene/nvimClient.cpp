@@ -15,9 +15,9 @@ int main(int argc, char **argv) {
 	}
 
 	try {
-		auto buffers = client->listBufs();
-		client->command(":highlight FooBar cterm=bold,underline, ctermfg=1, ctermbg=2");
-		auto hlGroup = client->getHlByName("FooBar", false);
+		auto buffers = client->nvim_list_bufs();
+		client->vim_command(":highlight FooBar cterm=bold,underline, ctermfg=1, ctermbg=2");
+		auto hlGroup = client->nvim_get_hl_by_name("FooBar", false);
 		for (auto it: hlGroup) {
 			std::cout << it.first << std::endl;
 		}
