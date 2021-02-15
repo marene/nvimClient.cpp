@@ -12,7 +12,7 @@
 # include "impl/MsgPacker.hpp"
 # include "impl/TcpConnector.hpp"
 # include "impl/types.hpp"
-		)includes"
+)includes"
 
 namespace nvimApiMetadata {
 	using ApiMetaVersion = struct {
@@ -79,10 +79,7 @@ namespace generator {
 		std::string type;
 		std::string name;
 
-		ApiFunctionParam(nvimApiMetadata::ApiMetaParams& param) {
-			this->type = param[0];
-			this->name = param[1];
-		}
+		ApiFunctionParam(std::string type, std::string name): type(type), name(name) {}
 	};
 
 	class ContainerTypeMatch {
