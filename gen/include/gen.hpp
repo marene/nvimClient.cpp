@@ -161,8 +161,6 @@ namespace generator {
 	struct ApiFunctionParam {
 		std::string type;
 		std::string name;
-
-		ApiFunctionParam(std::string type, std::string name): type(type), name(name) {}
 	};
 
 	class ContainerTypeMatch {

@@ -4,7 +4,7 @@
 #include "nvimClient.hpp"
 
 int main(int argc, char **argv) {
-	nvimRpc::Client *client = new nvimRpc::Client(
+	nvimRpc::ClientThreaded *client = new nvimRpc::ClientThreaded(
 		new Tcp::Connector({std::string("127.0.0.1"), 6666})
 	);
 
@@ -15,7 +15,6 @@ int main(int argc, char **argv) {
 	}
 
 	try {
-		auto buffers = client->nvim_list_bufs();
 		client->vim_command(":highlight FooBar cterm=bold,underline, ctermfg=1, ctermbg=2");
 		auto hlGroup = client->nvim_get_hl_by_name("FooBar", false);
 		for (auto it: hlGroup) {

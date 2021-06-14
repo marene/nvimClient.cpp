@@ -40,8 +40,10 @@ namespace nvimRpc {
 				private:
 					msgpack::sbuffer _buffer;
 					Packer* _packer;
+					uint64_t _id;
+
 				public:
-					PackedRequest(const std::string& method, uint64_t msgid, const T&...args) {
+					PackedRequest(const std::string& method, uint64_t msgid, const T&...args): _id(msgid) {
 						_buffer = msgpack::sbuffer();
 						_packer = new Packer(&_buffer);
 
@@ -61,6 +63,10 @@ namespace nvimRpc {
 					char* data() {
 						return _buffer.data();
 					};
+
+					const Packer* getPacker() {
+						return _packer;
+					}
 
 					size_t size() {
 						return _buffer.size();

@@ -44,7 +44,7 @@ namespace generator {
 	std::vector<ApiFunctionParam> getApiFunctionParams(const std::vector<nvimApiMetadata::ApiMetaParams>& params) {
 		std::vector<ApiFunctionParam> ret;
 		std::transform(params.begin(), params.end(), std::back_inserter(ret), [](nvimApiMetadata::ApiMetaParams p) {
-			return ApiFunctionParam(getType(p[0]), p[1]);
+			return ApiFunctionParam{getType(p[0]), p[1]};
 		});
 
 		return ret;
