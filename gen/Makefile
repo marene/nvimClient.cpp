@@ -2,7 +2,7 @@ srcs_dir = ./src/
 srcs = main.cpp \
 			 generator.cpp \
 			 nvimApiMetadata.cpp
-includes = -I ./include/ -I../msgpack-c/include
+includes = -I ./include/ -I ../msgpack-c/include -I $(BOOST_ROOT)/include
 obj_dir = ./obj/
 objs = $(srcs:.cpp=.o)
 name = gen

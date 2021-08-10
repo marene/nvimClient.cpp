@@ -5,6 +5,7 @@
 # include <boost/array.hpp>
 # include <vector>
 # include <string>
+# include <iostream>
 
 namespace Tcp {
 	class Connector {
@@ -32,7 +33,7 @@ namespace Tcp {
 				free(_socket);
 			};
 
-			void send(const char* buff, size_t size) {
+			void send(const char* buff, size_t size) const {
 				boost::system::error_code error;
 
 				if (!_isConnected) {
@@ -42,7 +43,7 @@ namespace Tcp {
 				_socket->write_some(boost::asio::buffer(buff, size), error);
 			};
 
-			std::vector<char> read() {
+			std::vector<char> read() const {
 				std::array<char, 4096> buf;
 
 				size_t sizeRead = _socket->read_some(boost::asio::buffer(buf));
@@ -62,6 +63,14 @@ namespace Tcp {
 				_socket->close();
 				_isConnected = false;
 			};
+
+			bool isConnected() const {
+				return _isConnected;
+			}
+
+			size_t available() const {
+				return _socket->available();
+			}
 	};
 }
 

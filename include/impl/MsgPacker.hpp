@@ -14,10 +14,15 @@ namespace nvimRpc {
 		using Object = msgpack::object;
 		using Void = msgpack::type::nil_t;
 		using Error = msgpack::type::tuple<uint64_t, std::string>;
-		enum {
+		using MessageType = enum {
 			REQUEST  = 0,
 			RESPONSE = 1,
 			NOTIFY   = 2
+		};
+
+		using MessageIdentifier = struct messageId_s {
+			int id;
+			int type;
 		};
 
 		template<class T>
@@ -71,6 +76,10 @@ namespace nvimRpc {
 					size_t size() {
 						return _buffer.size();
 					};
+
+					uint64_t id() {
+						return _id;
+					}
 			};
 
 		template <typename T>
@@ -91,9 +100,14 @@ namespace nvimRpc {
 						objectHandle.get().convert(unpackedResponse);
 						Object objectValue = unpackedResponse.get<3>();
 						Object objectError = unpackedResponse.get<2>();
+						int type = unpackedResponse.get<0>();
+						int msgId = unpackedResponse.get<1>();
 
+						// [type, msgId, error, value]
 						objectValue.convert_if_not_nil(_value);
 						objectError.convert_if_not_nil(_error);
+
+						std::cout << "type: " << type << " | msg id: " << msgId << std::endl;
 					};
 
 					const boost::optional<T>& value() const {
@@ -105,8 +119,22 @@ namespace nvimRpc {
 					}
 			};
 
+
 		class MsgPacker {
 			public:
+				static MessageIdentifier getMessageTypeAndId(const std::vector<char>& rawMessage) {
+					int id;
+					int type;
+
+
+					msgpack::object_handle objectHandle = msgpack::unpack(rawMessage.data(), rawMessage.size());
+					msgpack::type::tuple<uint64_t, uint64_t, Object, Object> unpackedMessage;
+					objectHandle.get().convert(unpackedMessage);
+					type = unpackedMessage.get<0>();
+					id = unpackedMessage.get<1>();
+
+					return { .id = id, .type = type };
+				}
 
 		};
 	}

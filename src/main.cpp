@@ -1,15 +1,30 @@
+#include <thread>
 #include <unistd.h>
 #include <iostream>
 
 #include "nvimClient.hpp"
 
+void bar() {
+	std::cout << "bar" << std::endl;
+}
+
+std::thread foo(dispatcher::CallDispatcher* dispatcher) {
+	std::thread t(dispatcher::CallDispatcher::makeCallDistacherListen, dispatcher);
+
+	return t;
+}
+
 int main(int argc, char **argv) {
-	nvimRpc::ClientThreaded *client = new nvimRpc::ClientThreaded(
-		new Tcp::Connector({std::string("127.0.0.1"), 6666})
-	);
+	Tcp::Connector* connector = new Tcp::Connector({std::string("127.0.0.1"), 6666});
+	nvimRpc::Client *client = new nvimRpc::Client(connector);
+	dispatcher::CallDispatcher* dispatcher = new dispatcher::CallDispatcher(*connector);
+
 
 	try {
-	client->connect();
+		client->connect();
+		auto t = dispatcher::CallDispatcher::startCallDispatcher(dispatcher);
+		std::cout << "FOOBAR" << std::endl;
+		t.join();
 	} catch (std::exception& e) {
 		std::cerr << "Failed to connect to nvim server: " << e.what() << std::endl;
 	}

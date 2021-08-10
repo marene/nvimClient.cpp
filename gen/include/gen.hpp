@@ -3,8 +3,8 @@
 
 # include <iostream>
 # include <regex>
-
 # include "msgpack.hpp"
+
 
 # define DEFINE_NVIMRPC_HEADERS R"define(#ifndef NVIM_CLIENT
 # define NVIM_CLIENT
@@ -98,54 +98,54 @@ namespace nvimRpc {
 # define CLOSE_NVIMRPC "\n}"
 
 namespace nvimApiMetadata {
-	using ApiMetaVersion = struct {
+	using ApiMetaVersion = struct ApiMetaVersion_s {
 		int major;
 		int minor;
 		int patch;
 		int api_level;
 		int api_compatible;
 		bool api_prerelease;
-		MSGPACK_DEFINE_MAP(major, minor, patch, api_level, api_compatible, api_prerelease);
+		MSGPACK_DEFINE(major, minor, patch, api_level, api_compatible, api_prerelease);
 	};
 
 	using ApiMetaParams = std::vector<std::string>;
 
-	using ApiMetaFunction = struct {
+	using ApiMetaFunction = struct ApiMetaFunction_s {
 		bool method;
 		std::string name;
 		std::string return_type;
 		std::vector<ApiMetaParams> parameters;
 		int since;
-		MSGPACK_DEFINE_MAP(method, name, return_type, parameters);
+		MSGPACK_DEFINE(method, name, return_type, parameters);
 	};
 
-	using ApiMetaTypes = struct {
+	using ApiMetaTypes = struct ApiMetaTypes_s {
 		int id;
 		std::string prefix;
-		MSGPACK_DEFINE_MAP(id, prefix);
+		MSGPACK_DEFINE(id, prefix);
 	};
 
-	using ApiMetaUIEvents = struct {
+	using ApiMetaUIEvents = struct ApiMetaUIEvents_s {
 		std::string name;
 		std::vector<ApiMetaParams> parameters;
 		int since;
-		MSGPACK_DEFINE_MAP(name, parameters, since);
+		MSGPACK_DEFINE(name, parameters, since);
 	};
 
-	using ApiMetaId = struct {
+	using ApiMetaId = struct ApiMetaId_s {
 		int id;
-		MSGPACK_DEFINE_MAP(id);
+		MSGPACK_DEFINE(id);
 	};
 	using ApiMetaErrorType = std::map<std::string, ApiMetaId>;
 
-	using ApiMetaInfo = struct {
+	using ApiMetaInfo = struct APiMetaInfo_s {
 		ApiMetaVersion version;
 		std::vector<ApiMetaFunction> functions;
 		std::vector<ApiMetaUIEvents> ui_events;
 		std::vector<std::string> ui_options;
 		ApiMetaErrorType error_types;
 		std::map<std::string, ApiMetaTypes>  types;
-		MSGPACK_DEFINE_MAP(version, functions, ui_events, ui_options, error_types, types);
+		MSGPACK_DEFINE(version, functions, ui_events, ui_options, error_types, types);
 	};
 
 	ApiMetaInfo getApiMetaInfo(std::ifstream& metaInfoInput);

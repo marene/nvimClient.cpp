@@ -121,10 +121,14 @@ namespace generator {
 			<< CLIENT_SETUP
 			<< std::endl << std::endl;
 
+		std::cout << "Headers written successfully" << std::endl;
+
 		addApiTypes(apiInfo.types);
+		std::cout << "API types written successfully" << std::endl;
 		for (auto fn: apiInfo.functions) {
 			defineApiFunction(client, fn);
 		}
+		std::cout << "api functions written successfully" << std::endl;
 
 		client
 			<< CLOSE_CLIENT
