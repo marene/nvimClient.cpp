@@ -1,6 +1,8 @@
+#ifndef CALL_DISPATCHER
+#define CALL_DISPATCHER
+
 #include <cstddef>
 #include <future>
-#include <iostream>
 #include <mutex>
 #include <exception>
 #include <thread>
@@ -68,27 +70,27 @@ namespace dispatcher {
 		private:
 			std::mutex* _callMap_mtx;
 			std::mutex* _connector_mtx;
-			const Tcp::Connector& _connector;
+			const Tcp::Connector* _connector;
 			std::map<int, CallInterface*> _callMap;
 			std::thread* _thread;
 
 			std::vector<char> _readFromSocket() {
 				std::lock_guard lockConnector(*_connector_mtx);
 
-				if (!_connector.available()) {
+				if (!_connector->available()) {
 					return std::vector<char>();
 				}
-				return _connector.read();
+				return _connector->read();
 			}
 
 			bool _isConnectorConnected() {
 				std::lock_guard lockConnector(*_connector_mtx);
 
-				return _connector.isConnected();
+				return _connector->isConnected();
 			}
 
 		public:
-			CallDispatcher(const Tcp::Connector& connector): _connector(connector) {
+			CallDispatcher(const Tcp::Connector* connector): _connector(connector) {
 				_callMap = std::map<int, CallInterface*>();
 				_callMap_mtx = new std::mutex();
 				_connector_mtx = new std::mutex();
@@ -101,7 +103,7 @@ namespace dispatcher {
 				std::lock_guard lockConnector(*_connector_mtx);
 				Call<T, U...>* callToPlace = new Call<T, U...>(request);
 				_callMap[request->id()] = callToPlace;
-				_connector.send(callToPlace->data(), callToPlace->size());
+				_connector->send(callToPlace->data(), callToPlace->size());
 
 				return callToPlace->getFuture();
 			}
@@ -120,7 +122,6 @@ namespace dispatcher {
 
 			void listenToConnector() {
 				nvimRpc::packer::MessageIdentifier messageIdentifier;
-				std::cout << "is connector connected: " << _isConnectorConnected() << std::endl;
 				while (_isConnectorConnected()) {
 					auto readFromSocket = _readFromSocket();
 
@@ -152,3 +153,5 @@ namespace dispatcher {
 			}
 	};
 }
+
+#endif /* !CALL_DISPATCHER */

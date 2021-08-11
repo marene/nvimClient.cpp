@@ -100,14 +100,10 @@ namespace nvimRpc {
 						objectHandle.get().convert(unpackedResponse);
 						Object objectValue = unpackedResponse.get<3>();
 						Object objectError = unpackedResponse.get<2>();
-						int type = unpackedResponse.get<0>();
-						int msgId = unpackedResponse.get<1>();
 
 						// [type, msgId, error, value]
 						objectValue.convert_if_not_nil(_value);
 						objectError.convert_if_not_nil(_error);
-
-						std::cout << "type: " << type << " | msg id: " << msgId << std::endl;
 					};
 
 					const boost::optional<T>& value() const {

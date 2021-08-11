@@ -9,6 +9,7 @@
 #include "impl/MsgPacker.hpp"
 #include "impl/TcpConnector.hpp"
 #include "impl/types.hpp"
+#include "impl/CallDispatcher.hpp"
 #include "msgpack.hpp"
 
 namespace nvimRpc {
@@ -30,6 +31,8 @@ class ClientError : std::exception {
 class Client {
   private:
     Tcp::Connector* _connector;
+		dispatcher::CallDispatcher* _dispatcher;
+		std::thread _dispatcherThread;
     uint64_t _msgid;
 
     template <typename T, typename... U>
@@ -41,6 +44,12 @@ class Client {
 
         return packer::PackedRequestResponse<T>(rawApiRes);
     };
+
+		template<typename... U>
+		packer::PackedRequest<U...>* _packRequest(const std::string& method, const U&... args) {
+			//TODO use smart pointers
+			return new packer::PackedRequest<U...>(method, _msgid++, args...);
+		}
 
     template <typename T> void _handleResponse(const packer::PackedRequestResponse<T>& response, T& ret) {
         if (response.error()) {
@@ -58,24 +67,33 @@ class Client {
   public:
     Client(Tcp::Connector* connector) {
         this->_connector = connector;
+				this->_dispatcher = new dispatcher::CallDispatcher(connector);
         this->_msgid = 0;
     };
 
-    void connect() { _connector->connect(); };
+    void connect() {
+			_connector->connect();
+			_dispatcherThread = dispatcher::CallDispatcher::startCallDispatcher(_dispatcher);
+			
+		};
 
-    void vim_command(std::string command) {
-        auto packedResponse = _call<packer::Void>("vim_command", command);
+		void disconnect() {
+			// TODO maybe connection of the connector should be the responsability of the dispatcher, so it can wait for all pending request to be fulfilled
+			_connector->disconnect();
+			_dispatcherThread.join();
+		}
 
-        _handleResponse(packedResponse);
+		std::future<dispatcher::CallResponse<packer::Void>> vim_command(std::string command) {
+			auto packedRequest = _packRequest("vim_command", command);
+
+			return _dispatcher->placeCall<packer::Void, std::string>(packedRequest);
     }
 
-    nvimRpc::types::Dictionary nvim_get_hl_by_name(std::string name, bool rgb) {
+		std::future<dispatcher::CallResponse<nvimRpc::types::Dictionary>> nvim_get_hl_by_name(std::string name, bool rgb) {
         nvimRpc::types::Dictionary ret;
-        auto packedResponse = _call<nvimRpc::types::Dictionary>("nvim_get_hl_by_name", name, rgb);
+				auto packedRequest = _packRequest("nvim_get_hl_by_name", name, rgb);
 
-        _handleResponse(packedResponse, ret);
-
-        return ret;
+				return _dispatcher->placeCall<types::Dictionary, std::string, bool>(packedRequest);
     }
 };
 } // namespace nvimRpc
