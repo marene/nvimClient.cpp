@@ -65,19 +65,19 @@ namespace nvimRpc {
 						free(_packer);
 					};
 
-					char* data() {
+					const char* data() const {
 						return _buffer.data();
 					};
 
-					const Packer* getPacker() {
+					const Packer* getPacker() const {
 						return _packer;
 					}
 
-					size_t size() {
+					size_t size() const {
 						return _buffer.size();
 					};
 
-					uint64_t id() {
+					uint64_t id() const {
 						return _id;
 					}
 			};
@@ -118,7 +118,6 @@ namespace nvimRpc {
 						return _error;
 					}
 			};
-
 
 		class MsgPacker {
 			public:

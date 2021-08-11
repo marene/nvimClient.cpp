@@ -41,12 +41,15 @@ namespace Tcp {
 				}
 
 				_socket->write_some(boost::asio::buffer(buff, size), error);
+				std::cout << "message sent to socket" << std::endl;
 			};
 
 			std::vector<char> read() const {
 				std::array<char, 4096> buf;
 
 				size_t sizeRead = _socket->read_some(boost::asio::buffer(buf));
+
+				std::cout << "read " << std::to_string(sizeRead) << " bytes from socket" << std::endl;
 
 				return std::vector<char>(buf.begin(), buf.begin() + sizeRead);
 			};

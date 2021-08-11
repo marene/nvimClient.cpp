@@ -14,24 +14,30 @@ namespace dispatcher {
 			DONE
 	};
 
+	template<class T>
+	struct CallResponse {
+		boost::optional<nvimRpc::packer::Error> error;
+		boost::optional<T> value;
+	};
+
 	class CallInterface {
 		public:
 			virtual void fulfillPromise(const std::vector<char>& rawResponse) = 0;
 			virtual CallState state() = 0;
 	};
 
-	template<class T> class Call: public CallInterface {
+	template<class T, class... U> class Call: public CallInterface {
 		private: 
 			CallState _state;
 			const char* _data;
 			size_t _dataSize;
-			std::promise<T> _promise;
+			std::promise<CallResponse<T>> _promise;
 
 		public:
-			Call(const nvimRpc::packer::PackedRequest<T>& request) {
+			Call<T, U...>(const nvimRpc::packer::PackedRequest<U...>* request) {
 				_state = PENDING;
-				_data = request.data();
-				_dataSize = request.size();
+				_data = request->data();
+				_dataSize = request->size();
 			}
 
 			CallState state() {
@@ -46,14 +52,14 @@ namespace dispatcher {
 				return _dataSize;
 			}
 
-			std::future<T> getFuture() {
+			std::future<CallResponse<T>> getFuture() {
 				return _promise.get_future();
 			}
 
 			void fulfillPromise(const std::vector<char>& rawResponse) {
 				nvimRpc::packer::PackedRequestResponse<T> unpackedResponse(rawResponse);
 				// TODO check how to handle error if unpackedResponse.error() is not nil
-				_promise.set_value(unpackedResponse.value());
+				_promise.set_value({.error=unpackedResponse.error(), .value=unpackedResponse.value()});
 				_state = DONE;
 			}
 	};
@@ -89,14 +95,15 @@ namespace dispatcher {
 				_thread = NULL;
 			}
 
-			template <class T> std::future<T> placeCall(nvimRpc::packer::PackedRequest<T> request) {
+			template <typename T, typename ...U>
+			std::future<CallResponse<T>> placeCall(const nvimRpc::packer::PackedRequest<U...>* request) {
 				std::lock_guard lockCallMap(*_callMap_mtx);
 				std::lock_guard lockConnector(*_connector_mtx);
-				Call callToPlace = new Call(request);
-				_callMap[request.id()] = callToPlace;
-				_connector.send(callToPlace.data(), callToPlace.size());
+				Call<T, U...>* callToPlace = new Call<T, U...>(request);
+				_callMap[request->id()] = callToPlace;
+				_connector.send(callToPlace->data(), callToPlace->size());
 
-				return callToPlace.get_future();
+				return callToPlace->getFuture();
 			}
 
 			void fulfillPlacedCall(int msgId, const std::vector<char>& rawResponse) {
@@ -112,6 +119,7 @@ namespace dispatcher {
 			}
 
 			void listenToConnector() {
+				nvimRpc::packer::MessageIdentifier messageIdentifier;
 				std::cout << "is connector connected: " << _isConnectorConnected() << std::endl;
 				while (_isConnectorConnected()) {
 					auto readFromSocket = _readFromSocket();
@@ -121,7 +129,8 @@ namespace dispatcher {
 
 						switch (messageIdentifier.type) {
 							case nvimRpc::packer::MessageType::RESPONSE:
-								// do response stuff
+								messageIdentifier = nvimRpc::packer::MsgPacker::getMessageTypeAndId(readFromSocket);
+								fulfillPlacedCall(messageIdentifier.id, readFromSocket);
 								break;
 							case nvimRpc::packer::MessageType::NOTIFY:
 								//figure out what to do with notifications
