@@ -1,4 +1,3 @@
-
 #ifndef NVIM_CLIENT
 #define NVIM_CLIENT
 #include <exception>

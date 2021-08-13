@@ -13,10 +13,10 @@ int main(int argc, char **argv) {
 	try {
 		client->connect();
 
-		client->vim_command(":highlight FooBar cterm=bold,underline, ctermfg=1, ctermbg=2");
+		client->nvim_command(":highlight FooBar cterm=bold,underline, ctermfg=1, ctermbg=2");
 
 		auto fut = client->nvim_get_hl_by_name("FooBar", false);
-		client->vim_command(":highlight FooBar cterm=undercurl,strikethrough, ctermfg=1, ctermbg=2");
+		client->nvim_command(":highlight FooBar cterm=undercurl,strikethrough, ctermfg=1, ctermbg=2");
 
 		fut.wait();
 		auto hlGroup = fut.get();

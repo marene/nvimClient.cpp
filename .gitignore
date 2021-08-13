@@ -36,9 +36,11 @@
 .ccls-root
 .ccls_cache
 compile_commands.json
-gen/.cache
-gen/.compile_commands.json
 gen/gen
 kode
 msgpack-c
-rpcVim
+example/rpcVim
+
+.vimspector.json
+node_modules
+nvimClient

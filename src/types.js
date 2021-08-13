@@ -1,7 +1,7 @@
 const nvimTypesMapping = Object.freeze({
-    Nil: 'void',
-    Void: 'void',
-    void: 'void',
+    Nil: 'packer::Void',
+    Void: 'packer::Void',
+    void: 'packer::Void',
     Boolean: 'bool',
     Integer: 'int64_t',
     Float: 'double',
@@ -20,7 +20,6 @@ function cppVector(type) {
 
 function getFormattedType(type) {
     const arrayOfMatch = type.match(arrayOfRegexp);
-    console.log(type, " ===> ", arrayOfMatch)
 
     if (arrayOfMatch) {
         return cppVector(getFormattedType(arrayOfMatch[1]));

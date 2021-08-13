@@ -16,40 +16,46 @@ function listParameters(functionParams, includeParamsTypes = false) {
     return paramsList.join(', ');
 }
 
+function listParametersTypes(functionParams) {
+    const paramsList = functionParams.map(
+        functionParam => functionParam.type,
+    );
+
+    return paramsList.join(', ');}
+
 function getFunctionHeader(fnType, fnName, fnParams) {
-    return `${fnType} ${fnName}(${listParameters(fnParams, true)})`
+    return `std::future<${fnType}> ${fnName}(${listParameters(fnParams, true)})`
 }
 
 function getFunctionImplementation(fnName, fnType, fnParams) {
-    const isFnTypeVoid = fnType === 'void';
-    const callType = isFnTypeVoid ? 'packer::Void' : fnType;
-    const fnEnd = isFnTypeVoid ? '' : 'return ret;'
     const listedParams = listParameters(fnParams);
-    let fnImplementation = '';
+    const listedParamsTypes = listParametersTypes(fnParams);
 
-    if (!isFnTypeVoid) {
-        fnImplementation += `${fnType} ret;\n`
-    }
+    return `\
+auto packedRequest = _packRequest("${fnName}"${listedParams.length ? ', ' + listedParams : ''});
 
-    return fnImplementation + `\
-auto packedResponse = _call<${callType}>("${fnName}"${listedParams.length ? ', ' + listedParams : ''});
 
-_handleResponse(packedResponse${isFnTypeVoid ? '' : ', ret'});
-
-`  + fnEnd;
+return _dispatcher->placeCall<${fnType}${listedParamsTypes.length ? ', ' + listedParamsTypes : ''}>(packedRequest);
+`;
 }
 
-function defineFunctions(headerFile, apiInfo) {
+function defineFunctions(apiInfo) {
+    let functions = '';
     apiInfo.functions.forEach(fn => {
+        if (fn.deprecated_since && fn.deprecated_since <= apiInfo.version.api_level) {
+            return;
+        }
         const fnType = getFormattedType(fn.return_type);
         const fnParams = getFunctionParameters(fn.parameters);
-        headerFile.write(`
+        functions += `
 
 ${getFunctionHeader(fnType, fn.name, fnParams)} {
     ${getFunctionImplementation(fn.name, fnType, fnParams)}
 }
-`);
+`;
     });
+
+    return functions
 }
 
 module.exports = {
