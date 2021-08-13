@@ -37,7 +37,6 @@ namespace generator {
 			}
 		}
 
-		// TODO : at some point I got faced with a "LuaRef" type I was not finding in the api doc, so I just went with that solution, but it should be investigated
 		return "msgpack::type::ext";
 	}
 

@@ -82,55 +82,45 @@ namespace nvimRpc {
 					}
 			};
 
-		template <typename T>
-			class PackedRequestResponse {
-				private:
-					std::vector<char> _rawResponse;
-					// TODO upgrade to std::optional
-					boost::optional<packer::Error> _error;
-					boost::optional<T> _value;
+		class PackedRequestResponse {
+			private:
+				std::vector<char> _rawResponse;
+				uint64_t _msgType;
+				uint64_t _msgId;
+				Object _objectValue;
+				Object _objectError;
 
-				public:
-					PackedRequestResponse() {};
-					PackedRequestResponse(const std::vector<char>& rawResponse) {
-						_rawResponse = std::vector<char>(rawResponse);
-
-						msgpack::object_handle objectHandle = msgpack::unpack(_rawResponse.data(), _rawResponse.size());
-						msgpack::type::tuple<uint64_t, uint64_t, Object, Object> unpackedResponse;
-						objectHandle.get().convert(unpackedResponse);
-						Object objectValue = unpackedResponse.get<3>();
-						Object objectError = unpackedResponse.get<2>();
-
-						// [type, msgId, error, value]
-						objectValue.convert_if_not_nil(_value);
-						objectError.convert_if_not_nil(_error);
-					};
-
-					const boost::optional<T>& value() const {
-						return _value;
-					}
-
-					const boost::optional<packer::Error>& error() const {
-						return _error;
-					}
-			};
-
-		class MsgPacker {
 			public:
-				static MessageIdentifier getMessageTypeAndId(const std::vector<char>& rawMessage) {
-					int id;
-					int type;
+				PackedRequestResponse() {};
+				PackedRequestResponse(const std::vector<char>& rawResponse, size_t& offset) {
+					_rawResponse = std::vector<char>(rawResponse);
+
+					msgpack::object_handle objectHandle = msgpack::unpack(_rawResponse.data(), _rawResponse.size(), offset);
+					msgpack::type::tuple<uint64_t, uint64_t, Object, Object> unpackedResponse;
+					objectHandle.get().convert(unpackedResponse);
+					_msgType = unpackedResponse.get<0>();
+					_msgId = unpackedResponse.get<1>();
+					_objectValue = unpackedResponse.get<3>();
+					_objectError = unpackedResponse.get<2>();
+				};
 
 
-					msgpack::object_handle objectHandle = msgpack::unpack(rawMessage.data(), rawMessage.size());
-					msgpack::type::tuple<uint64_t, uint64_t, Object, Object> unpackedMessage;
-					objectHandle.get().convert(unpackedMessage);
-					type = unpackedMessage.get<0>();
-					id = unpackedMessage.get<1>();
-
-					return { .id = id, .type = type };
+				template<class T>
+				bool value(T& value) const {
+					return _objectValue.convert_if_not_nil(value);
 				}
 
+				bool error(packer::Error& error) const {
+					return _objectError.convert_if_not_nil(error);
+				}
+
+				uint64_t type() const {
+					return _msgType;
+				}
+
+				uint64_t id() const {
+					return _msgId;
+				}
 		};
 	}
 }

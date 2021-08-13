@@ -1,7 +1,7 @@
 SRCS_DIR = ./src/
 SRCS = main.cpp
 INCLUDES = -I ./include/ -I./neovim/src -I$(BOOST_ROOT)/include -I./msgpack-c/include
-IMPL_HEADERS = ./include/impl/Client.hpp \
+IMPL_HEADERS = ./include/impl/generated_Client.hpp \
 							 ./include/impl/MsgPacker.hpp \
 							 ./include/impl/TcpConnector.hpp \
 							 ./include/impl/CallDispatcher.hpp

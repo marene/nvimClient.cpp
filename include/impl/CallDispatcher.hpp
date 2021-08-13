@@ -3,9 +3,13 @@
 
 #include <cstddef>
 #include <future>
+#include <iostream>
+#include <memory>
 #include <mutex>
 #include <exception>
+#include <string>
 #include <thread>
+#include <tuple>
 
 #include "impl/MsgPacker.hpp"
 #include "impl/TcpConnector.hpp"
@@ -16,15 +20,9 @@ namespace dispatcher {
 			DONE
 	};
 
-	template<class T>
-	struct CallResponse {
-		boost::optional<nvimRpc::packer::Error> error;
-		boost::optional<T> value;
-	};
-
 	class CallInterface {
 		public:
-			virtual void fulfillPromise(const std::vector<char>& rawResponse) = 0;
+			virtual void fulfillPromise(const nvimRpc::packer::PackedRequestResponse& packedResponse) = 0;
 			virtual CallState state() = 0;
 	};
 
@@ -33,10 +31,10 @@ namespace dispatcher {
 			CallState _state;
 			const char* _data;
 			size_t _dataSize;
-			std::promise<CallResponse<T>> _promise;
+			std::promise<T> _promise;
 
 		public:
-			Call<T, U...>(const nvimRpc::packer::PackedRequest<U...>* request) {
+			Call<T, U...>(const std::shared_ptr<nvimRpc::packer::PackedRequest<U...>>& request) {
 				_state = PENDING;
 				_data = request->data();
 				_dataSize = request->size();
@@ -54,14 +52,23 @@ namespace dispatcher {
 				return _dataSize;
 			}
 
-			std::future<CallResponse<T>> getFuture() {
+			std::future<T> getFuture() {
 				return _promise.get_future();
 			}
 
-			void fulfillPromise(const std::vector<char>& rawResponse) {
-				nvimRpc::packer::PackedRequestResponse<T> unpackedResponse(rawResponse);
-				// TODO check how to handle error if unpackedResponse.error() is not nil
-				_promise.set_value({.error=unpackedResponse.error(), .value=unpackedResponse.value()});
+			void fulfillPromise(const nvimRpc::packer::PackedRequestResponse& packedResponse) {
+				T value;
+				nvimRpc::packer::Error error;
+
+				if (packedResponse.error(error)) {
+					_promise.set_exception(std::make_exception_ptr(std::runtime_error(std::get<1>(error))));
+				} else if (packedResponse.value(value)) {
+					_promise.set_value(value);
+				} else {
+					// this is for when fulfilling a promise to Void, packedResponse.value() returns false
+					_promise.set_value(T());
+				}
+
 				_state = DONE;
 			}
 	};
@@ -89,6 +96,36 @@ namespace dispatcher {
 				return _connector->isConnected();
 			}
 
+			void _unpackReceivedMessage(const std::vector<char>& receivedMessage) {
+				size_t offset = 0;
+
+				while (offset != receivedMessage.size()) {
+					auto packedResponse = nvimRpc::packer::PackedRequestResponse(receivedMessage, offset);
+
+					switch (packedResponse.type()) {
+						case nvimRpc::packer::MessageType::RESPONSE:
+							_fulfillPlacedCall(packedResponse);
+							break;
+						case nvimRpc::packer::MessageType::NOTIFY:
+							//figure out what to do with notifications
+							throw std::runtime_error("Notifications handling has not been implemented yet because I'm a lazy fuck");
+					}
+				}
+			}
+
+			void _fulfillPlacedCall(const nvimRpc::packer::PackedRequestResponse& packedResponse) {
+				std::lock_guard lockCallMap(*_callMap_mtx);
+
+				auto call = _callMap[packedResponse.id()];
+				if (call->state() == DONE) {
+					throw std::runtime_error(std::string("request with id ") + std::to_string(packedResponse.id()) + std::string(" already fulfilled"));
+				}
+
+				call->fulfillPromise(packedResponse);
+				// remove call from map?
+			}
+
+
 		public:
 			CallDispatcher(const Tcp::Connector* connector): _connector(connector) {
 				_callMap = std::map<int, CallInterface*>();
@@ -98,7 +135,7 @@ namespace dispatcher {
 			}
 
 			template <typename T, typename ...U>
-			std::future<CallResponse<T>> placeCall(const nvimRpc::packer::PackedRequest<U...>* request) {
+			std::future<T> placeCall(const std::shared_ptr<nvimRpc::packer::PackedRequest<U...>> request) {
 				std::lock_guard lockCallMap(*_callMap_mtx);
 				std::lock_guard lockConnector(*_connector_mtx);
 				Call<T, U...>* callToPlace = new Call<T, U...>(request);
@@ -108,36 +145,13 @@ namespace dispatcher {
 				return callToPlace->getFuture();
 			}
 
-			void fulfillPlacedCall(int msgId, const std::vector<char>& rawResponse) {
-				std::lock_guard lockCallMap(*_callMap_mtx);
-
-				auto call = _callMap[msgId];
-				if (call->state() == DONE) {
-					throw std::runtime_error(std::string("request with id ") + std::to_string(msgId) + std::string(" already fulfilled"));
-				}
-
-				call->fulfillPromise(rawResponse);
-				// remove call from map?
-			}
-
 			void listenToConnector() {
 				nvimRpc::packer::MessageIdentifier messageIdentifier;
 				while (_isConnectorConnected()) {
 					auto readFromSocket = _readFromSocket();
 
 					if (readFromSocket.size() > 0) {
-						auto messageIdentifier = nvimRpc::packer::MsgPacker::getMessageTypeAndId(readFromSocket);
-
-						switch (messageIdentifier.type) {
-							case nvimRpc::packer::MessageType::RESPONSE:
-								messageIdentifier = nvimRpc::packer::MsgPacker::getMessageTypeAndId(readFromSocket);
-								fulfillPlacedCall(messageIdentifier.id, readFromSocket);
-								break;
-							case nvimRpc::packer::MessageType::NOTIFY:
-								//figure out what to do with notifications
-								throw std::runtime_error("Notifications handling has not been implemented yet because I'm a lazy fuck");
-
-						}
+						_unpackReceivedMessage(readFromSocket);
 					}
 				}
 			}
